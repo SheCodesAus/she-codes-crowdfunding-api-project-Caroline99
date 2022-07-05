@@ -6,15 +6,17 @@ from .models import Project, Pledge
 from .serializers import ProjectSerializer, PledgeSerializer, ProjectDetailSerializer, PledgeDetailSerializer
 from django.http import Http404
 from rest_framework import status, permissions
-from .permissions import IsOwnerOrReadOnly
+from .permissions import IsOwnerOrReadOnly, IsSupporterOrReadOnly
 
 class PledgeList(APIView):
     
+    # GET request
     def get(self, request):
         pledges = Pledge.objects.all()
         serializer = PledgeSerializer(pledges, many=True)
         return Response(serializer.data)
-        
+
+    # POST request    
     def post(self, request):
         serializer = PledgeSerializer(data=request.data)
         if serializer.is_valid():
@@ -31,8 +33,7 @@ class PledgeList(APIView):
 class PledgeDetail(APIView):
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
-        # IsOwnerOrReadOnly (removed)
-        # Do I want IsSupporter? Seems like it's covered by IsAuthenticated
+        IsSupporterOrReadOnly
     ]
 
     def get_object(self, pk):
@@ -42,12 +43,14 @@ class PledgeDetail(APIView):
             return pledge  
         except Project.DoesNotExist:
             raise Http404
-        
+    
+    # GET request
     def get(self, request, pk):
         pledge = self.get_object(pk)
         serializer = PledgeDetailSerializer(pledge)
         return Response(serializer.data)
 
+    # PUT request
     def put(self, request, pk):
         pledge = self.get_object(pk)
         data = request.data
@@ -59,19 +62,25 @@ class PledgeDetail(APIView):
 
         if serializer.is_valid():
             serializer.save()
-            # see above and copy error handling
-            return Response(serializer.data)
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED
+            )
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 # /projects
 class ProjectList(APIView):
-
+    # GET request
     def get(self, request):
         projects = Project.objects.all()
         serializer = ProjectSerializer(projects, many=True)
         return Response(serializer.data)
 
-    
+    # POST request
     def post(self, request):
         serializer = ProjectSerializer(data=request.data)
         if serializer.is_valid():
@@ -98,12 +107,14 @@ class ProjectDetail(APIView):
             return project  
         except Project.DoesNotExist:
             raise Http404
-        
+
+    # GET request    
     def get(self, request, pk):
         project = self.get_object(pk)
         serializer = ProjectDetailSerializer(project)
         return Response(serializer.data)
 
+    # PUT request
     def put(self, request, pk):
         project = self.get_object(pk)
         data = request.data
@@ -114,4 +125,19 @@ class ProjectDetail(APIView):
         )
         if serializer.is_valid():
             serializer.save()
+            return Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
+    # DELETE request
+    def delete(self, request, pk):
+        project = self.get_object(pk)
+        project.delete()
+        return Response(
+            status=status.HTTP_204_NO_CONTENT
+        )

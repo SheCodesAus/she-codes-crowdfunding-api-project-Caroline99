@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import CustomUser
-from .serializers import CustomUserSerializer
+from .serializers import CustomUserSerializer, CustomUserDetailSerializer
 
 # users/
 class CustomUserList(APIView):
@@ -25,6 +25,7 @@ class CustomUserList(APIView):
 
 # users/<pk>     
 class CustomUserDetail(APIView):
+    # TODO permissions
 
     def get_object(self, pk):
         try:
@@ -37,6 +38,34 @@ class CustomUserDetail(APIView):
         user = self.get_object(pk)
         serializer = CustomUserSerializer(user)
         return Response(serializer.data)
+
+    # PUT request
+    def put(self, request, pk):
+        user = self.get_object(pk)
+        data = request.data
+        serializer = CustomUserDetailSerializer(
+            instance=user,
+            data=data,
+            partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # DELETE request
+    def delete(self, request, pk):
+        user = self.get_object(pk)
+        user.delete()
+        return Response(
+            status=status.HTTP_204_NO_CONTENT
+        )
 
 
 
