@@ -16,6 +16,7 @@ class CustomUserList(APIView):
         return Response(serializer.data)
         
     # POST request
+    # TODO Must have unique username and password
     def post(self, request):
         serializer = CustomUserSerializer(data=request.data)
         if serializer.is_valid():
@@ -24,8 +25,7 @@ class CustomUserList(APIView):
         return Response(serializer.errors)
 
 # users/<pk>     
-class CustomUserDetail(APIView):
-    # TODO permissions
+class CustomUserDetail(APIView):    
 
     def get_object(self, pk):
         try:
@@ -41,7 +41,11 @@ class CustomUserDetail(APIView):
 
     # PUT request
     def put(self, request, pk):
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         user = self.get_object(pk)
+        #if request.user != user or not request.user.is_superuser:
+        #    return Response(status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         serializer = CustomUserDetailSerializer(
             instance=user,
@@ -61,11 +65,15 @@ class CustomUserDetail(APIView):
 
     # DELETE request
     def delete(self, request, pk):
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)        
         user = self.get_object(pk)
+        # needs testing
+        #if request.user != user.user or not request.user.is_superuser:
+        #    return Response(status=status.HTTP_401_UNAUTHORIZED)
         user.delete()
         return Response(
-            status=status.HTTP_204_NO_CONTENT
-        )
+            status=status.HTTP_200_OK        )
 
 
 

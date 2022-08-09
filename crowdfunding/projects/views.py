@@ -18,6 +18,11 @@ class PledgeList(APIView):
 
     # POST request    
     def post(self, request):
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        # TODO Must not be the project owner
+        #if request.user == request.data.project_id:
+        #    return Response(status=status.HTTP_401_UNAUTHORIZED)
         serializer = PledgeSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(supporter=request.user)
@@ -52,7 +57,11 @@ class PledgeDetail(APIView):
 
     # PUT request
     def put(self, request, pk):
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         pledge = self.get_object(pk)
+        if request.user != pledge.supporter:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         serializer = PledgeDetailSerializer(
             instance=pledge,
@@ -64,13 +73,25 @@ class PledgeDetail(APIView):
             serializer.save()
             return Response(
                 serializer.data,
-                status=status.HTTP_201_CREATED
+                status=status.HTTP_200_OK
             )
         return Response(
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    # DELETE request
+    def delete(self, request, pk):
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        pledge = self.get_object(pk)
+        # if request.user != pledge.supporter or not request.user.is_superuser:
+        if request.user != pledge.supporter:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        pledge.delete()
+        return Response(
+            status=status.HTTP_200_OK
+        )
 
 # /projects
 class ProjectList(APIView):
@@ -82,6 +103,8 @@ class ProjectList(APIView):
 
     # POST request
     def post(self, request):
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         serializer = ProjectSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(owner=request.user)
@@ -116,7 +139,12 @@ class ProjectDetail(APIView):
 
     # PUT request
     def put(self, request, pk):
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         project = self.get_object(pk)
+        #if request.user != project.owner or not request.user.is_superuser:
+        if request.user != project.owner:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         data = request.data
         serializer = ProjectDetailSerializer(
             instance=project,
@@ -136,8 +164,13 @@ class ProjectDetail(APIView):
 
     # DELETE request
     def delete(self, request, pk):
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         project = self.get_object(pk)
+        # if request.user != project.owner or not request.user.is_superuser:
+        if request.user != project.owner:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         project.delete()
         return Response(
-            status=status.HTTP_204_NO_CONTENT
+            status=status.HTTP_200_OK
         )
